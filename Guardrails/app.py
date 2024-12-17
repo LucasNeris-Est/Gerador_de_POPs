@@ -4,6 +4,7 @@ import google.generativeai as genai
 import re  # Para capturar conteúdo entre delimitadores
 from guardrails import Guard
 from Validador_tex import ValidTex  # Certifique-se de importar o validador criado
+import subprocess
 
 # Carregar variáveis de ambiente do arquivo .env
 load_dotenv()
@@ -15,6 +16,40 @@ if not api_key:
 
 # Configurar a API Key
 genai.configure(api_key=api_key)
+
+
+
+def compile_latex(tex_content, output_directory):
+    """
+    Compila o código LaTeX diretamente em PDF usando pdflatex.
+
+    Args:
+        tex_content (str): Código LaTeX a ser compilado.
+        output_directory (str): Diretório onde o PDF será salvo.
+
+    Returns:
+        str: Caminho do arquivo PDF gerado.
+    """
+    # Caminho do arquivo .tex
+    tex_file = os.path.join(output_directory, "document.tex")
+    pdf_file = os.path.join(output_directory, "document.pdf")
+
+    # Salvar o conteúdo LaTeX em um arquivo .tex
+    with open(tex_file, "w", encoding="utf-8") as file:
+        file.write(tex_content)
+
+    try:
+        # Executar o pdflatex para compilar o arquivo .tex
+        subprocess.run([r'C:\Users\lucas.neris\AppData\Local\Programs\MiKTeX\miktex\bin\x64\pdflatex', "-interaction=nonstopmode", "document.tex"],
+               cwd=output_directory, 
+               stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+        print(f"PDF gerado com sucesso: {pdf_file}")
+        return pdf_file
+
+    except subprocess.CalledProcessError as e:
+        print("Erro durante a compilação do LaTeX:", e)
+        return None
 
 # Função para interagir com o Gemini utilizando uma persona
 def chat_with_persona(persona_description, question):
@@ -67,7 +102,7 @@ if __name__ == "__main__":
     guard = Guard().use(ValidTex, on_fail="exception")
 
     # Definir a persona
-    persona = """- Carrege o perfil delimitado pela tag 
+    persona = r"""- Carrege o perfil delimitado pela tag 
             <usuario></usuario> no placeholder {usuario}
 
             - Carrege o perfil delimitado pela tag 
@@ -84,15 +119,10 @@ if __name__ == "__main__":
             Atenção ao Detalhe: Cada elemento do documento, desde o formato até os conteúdos, é projetado para eliminar ambiguidades e proporcionar uma experiência eficiente de uso.
             Principais responsabilidades:
             Captação de Informações: Coletar descrições informais dos processos diretamente com os colaboradores ou gestores responsáveis, garantindo que nenhum detalhe crítico seja omitido.
-            Criação de POPs em LaTeX: Estruturar documentos que incluem:
-            Objetivo do procedimento.
-            Materiais, ferramentas e condições necessárias.
-            Passo a passo detalhado, com numeração clara.
-            Tabelas, diagramas e listas para simplificar a apresentação de informações.
-            Indicadores e métricas para controle de qualidade.
-            Customização Visual: Desenvolver templates personalizados em LaTeX para uniformizar o design dos POPs, incluindo cabeçalhos, rodapés, logotipos e numeração.
+            Criação de POPs em LaTeX: Estruturar documentos que seguem o pardrão delimitado por <padrao><\padrao>
+            
+
             Validação e Feedback: Revisar os documentos junto às equipes operacionais, garantindo que as instruções sejam compreendidas e executáveis.
-            Treinamento em LaTeX: Se necessário, capacitar outros colaboradores a utilizar LaTeX para ajustar ou criar novos documentos no futuro.
             Diferenciais:
             Criação de POPs que combinam funcionalidade técnica com alta qualidade visual e padronização.
             Experiência em integrar elementos complexos, como equações ou diagramas, diretamente no LaTeX, quando necessário para processos técnicos específicos.
@@ -123,6 +153,95 @@ if __name__ == "__main__":
             (Quando for solicitado a você analise o POP para o problema do usuário. Com base na analise de melhoria ou ajuste do POP armazene o feedback no placeholder {feedback}. Não tendo mais sugestões de ajustes ou melhoria, escreva "Está de acordo.".)
             </usuario>
 
+            <padrao>
+            \documentclass[a4paper,12pt]{article}
+            \usepackage[utf8]{inputenc}
+            \usepackage{geometry}
+            \usepackage{longtable}
+            \usepackage{graphicx}
+            \usepackage{titlesec}
+            \usepackage{enumitem}
+            \usepackage{fancyhdr}
+            \usepackage{lastpage}
+            \geometry{margin=1in}
+
+            % Configuração do cabeçalho e rodapé
+            \pagestyle{fancy}
+            \fancyhf{}
+            \fancyhead[L]{Procedimento Operacional Padrão (POP)}
+            \fancyhead[R]{\leftmark}
+            \fancyfoot[C]{Página \thepage\ de \pageref{LastPage}}
+
+            % Configuração de títulos e seções
+            \titleformat{\section}{\bfseries\large}{\thesection.}{1em}{}
+            \titleformat{\subsection}{\bfseries\normalsize}{\thesubsection.}{1em}{}
+            \setlist[itemize]{label=--}
+
+            % Título do Documento
+            \title{
+                \vspace{-2cm}
+                \rule{\linewidth}{0.5mm}\\[0.4cm]
+                \textbf{Procedimento Operacional Padrão (POP)}\\[0.2cm]
+                \rule{\linewidth}{0.5mm}
+            }
+            \author{
+                \textbf{Setor Responsável:} {Nome do Setor} \\
+                \textbf{Elaborado por:} {Nome do Autor} \\
+                \textbf{Data:} \today
+            }
+            \date{}
+
+            \begin{document}
+
+            \maketitle
+            \vspace{-1cm}
+
+            % 1. Objetivo
+            \section*{1. Objetivo}
+            Descreva aqui o objetivo do procedimento de forma clara e concisa, indicando o que se espera alcançar com este POP.
+
+            % 2. Aplicação
+            \section*{2. Aplicação}
+            Indique a área, setores ou colaboradores que deverão seguir este POP. Especifique os casos ou contextos de uso.
+
+            % 3. Materiais, Ferramentas e Condições Necessárias
+            \section*{3. Materiais, Ferramentas e Condições Necessárias}
+            \begin{itemize}
+                \item Material ou ferramenta 1
+                \item Material ou ferramenta 2
+                \item Condição ou ambiente necessário
+            \end{itemize}
+
+            % 4. Procedimento - Passo a Passo
+            \section*{4. Procedimento - Passo a Passo}
+            \begin{enumerate}
+                \item \textbf{Passo 1:} Descrição detalhada do primeiro passo.
+                \item \textbf{Passo 2:} Descrição detalhada do segundo passo.
+                \item \textbf{Passo 3:} Inclua diagramas, tabelas ou referências, se necessário.\\
+                \includegraphics[width=0.5\linewidth]{exemplo.png} % Substitua com o caminho da imagem
+            \end{enumerate}
+
+            % 5. Indicadores e Métricas
+            \section*{5. Indicadores e Métricas de Qualidade}
+            \begin{itemize}
+                \item \textbf{Indicador 1:} Descrição do indicador.
+                \item \textbf{Métricas:} Parâmetros esperados para garantir a qualidade do procedimento.
+            \end{itemize}
+
+            % 6. Observações e Cuidados Especiais
+            \section*{6. Observações e Cuidados Especiais}
+            Inclua aqui orientações de segurança, boas práticas ou observações importantes que devem ser seguidas durante a execução do procedimento.
+
+            % 7. Revisão e Aprovação
+            \section*{7. Revisão e Aprovação}
+            \begin{tabbing}
+                \hspace{5cm} \= \textbf{Revisado por:} \hspace{2cm} \= ....................................... \\
+                \hspace{5cm} \> \textbf{Aprovado por:} \> ....................................... \\
+            \end{tabbing}
+
+            \end{document
+            <\padrao>
+
             ----------------------------------------------------------------------------------------------
 
             -Execute 20 vezes em sequência os comandos delimitados pelas tags <loop></loop> após eu digitar a descrição informal do processo. Não me retorne nenhuma saída no processamento do loop, somente mostre o código em TEX no fim do loop.
@@ -134,6 +253,8 @@ if __name__ == "__main__":
 
             </loop>
             """
+
+
 
     # Pergunta
     user_question = input("Digite sua pergunta: ")
@@ -148,6 +269,18 @@ if __name__ == "__main__":
     try:
         guard.validate(extracted_tex)  # Valida a string extraída
         #print("Código TeX validado com sucesso:")
-        print(extracted_tex)
+        #print(extracted_tex)
+            # Diretório onde o PDF será salvo
+        output_directory = "./output"
+        os.makedirs(output_directory, exist_ok=True)
+
+        # Compilar o LaTeX e gerar o PDF
+        pdf_path = compile_latex(extracted_tex, output_directory)
+        if pdf_path:
+            print(f"PDF gerado em: {pdf_path}")
+        else:
+            print("Falha ao gerar o PDF.")
     except Exception as e:
         print(f"Erro na validação do código TeX: {e}")
+
+
